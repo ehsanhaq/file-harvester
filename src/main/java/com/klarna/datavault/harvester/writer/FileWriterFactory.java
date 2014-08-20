@@ -3,7 +3,6 @@ package com.klarna.datavault.harvester.writer;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.NotImplementedException;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 /**
@@ -26,10 +25,10 @@ public class FileWriterFactory {
      * @param outputPath Output file for the new instance of @see OutputFileWriter.
      * @param otherArguments Additional parameters for the writer.
      * @return an instance of a class that implements @OutputFileWriter, based on the @see type.
-     * @throws IOException
+     * @throws Exception
      */
     public static OutputFileWriter createWriter(OutputFormat type, Path outputPath, String[] otherArguments)
-            throws IOException {
+            throws Exception {
         Preconditions.checkArgument(type != null, "type can not be null");
         switch (type) {
             case SEQUENCE:

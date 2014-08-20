@@ -1,6 +1,5 @@
 package com.klarna.datavault.harvester;
 
-import com.google.common.collect.Maps;
 import com.klarna.datavault.harvester.writer.types.ConverterFactory;
 import org.apache.commons.cli.*;
 import org.apache.hadoop.io.SequenceFile;
@@ -9,7 +8,6 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import java.util.Arrays;
-import java.util.HashMap;
 
 public class SampleTest {
     @Rule

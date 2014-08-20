@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import com.klarna.datavault.harvester.writer.types.ConverterFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.compress.BZip2Codec;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,19 +35,19 @@ public class SequenceFileWriterTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void nullInBuilderConstructor() throws IOException {
+    public void nullInBuilderConstructor() throws Exception {
         new SequenceFileWriter.Builder(null).build();
     }
 
     @Test(expected = FileAlreadyExistsException.class)
-    public void fileAlreadyExist() throws IOException {
+    public void fileAlreadyExist() throws Exception {
         File alreadyExistingFile = temporaryFolder.newFile();
         new SequenceFileWriter.Builder(alreadyExistingFile.toPath())
                 .build();
     }
 
     @Test
-    public void withNoInputFile() throws IOException, InstantiationException, IllegalAccessException {
+    public void withNoInputFile() throws Exception {
         SequenceFileWriter sequenceFileWriter = new SequenceFileWriter.Builder(outputPath).build();
         sequenceFileWriter.close();
 
@@ -55,7 +56,7 @@ public class SequenceFileWriterTest {
     }
 
     @Test
-    public void withSingleInputFile() throws IOException, InstantiationException, IllegalAccessException {
+    public void withSingleInputFile() throws Exception {
         File inputFile = temporaryFolder.newFile();
         String data = "This is a test message";
         Files.write(data.getBytes(), inputFile);
@@ -72,7 +73,7 @@ public class SequenceFileWriterTest {
     }
 
     @Test
-    public void withMultipleFiles() throws IOException, InstantiationException, IllegalAccessException {
+    public void withMultipleFiles() throws Exception {
         final int N = 10;
         File inputFile[] = new File[N];
         String data = "This is a test message";
@@ -96,7 +97,7 @@ public class SequenceFileWriterTest {
     }
 
     @Test
-    public void useTextFormat() throws IOException, InstantiationException, IllegalAccessException {
+    public void useTextFormat() throws Exception {
         final int N = 10;
         File inputFile[] = new File[N];
         String data = "This is a test message";
@@ -121,7 +122,7 @@ public class SequenceFileWriterTest {
     }
 
     @Test
-    public void useNullKeyFormat() throws IOException, InstantiationException, IllegalAccessException {
+    public void useNullKeyFormat() throws Exception {
         final int N = 10;
         File inputFile[] = new File[N];
         String data = "This is a test message";
@@ -146,7 +147,7 @@ public class SequenceFileWriterTest {
     }
 
     @Test
-    public void useRecordCompression() throws IOException, InstantiationException, IllegalAccessException {
+    public void useCompression() throws Exception {
         final int N = 100;
         File inputFile[] = new File[N];
         String data = "This is a test message which is contains repeated repeated repeated repeated repeated " +
@@ -159,8 +160,45 @@ public class SequenceFileWriterTest {
                 .setKeyClass(ConverterFactory.Type.NULL).setValueClass(ConverterFactory.Type.TEXT).build();
         SequenceFileWriter sequenceFileWriterCompressed =
                 new SequenceFileWriter.Builder(outputPathCompressed)
-                .setCompressionMode(SequenceFile.CompressionType.RECORD)
+                .setCompressionMode(SequenceFile.CompressionType.BLOCK)
                 .setKeyClass(ConverterFactory.Type.NULL).setValueClass(ConverterFactory.Type.TEXT).build();
+
+        for (int i=0; i<N; i++) {
+            inputFile[i] = temporaryFolder.newFile();
+            Files.write(data.getBytes(), inputFile[i]);
+            expected.put(NullWritable.get(),
+                    new Text(data.getBytes()));
+            sequenceFileWriterPlain.write(Paths.get(inputFile[i].getAbsolutePath()));
+            sequenceFileWriterCompressed.write(Paths.get(inputFile[i].getAbsolutePath()));
+        }
+        sequenceFileWriterPlain.close();
+        sequenceFileWriterCompressed.close();
+
+        Assert.assertTrue(outputPathCompressed.toFile().length() < outputPath.toFile().length());
+        Map<Writable, Writable> actualPlain = readSequenceFile(outputPath);
+        Map<Writable, Writable> actualCompressed = readSequenceFile(outputPathCompressed);
+
+        Assert.assertEquals(expected, actualPlain);
+        Assert.assertEquals(expected, actualCompressed);
+    }
+
+    @Test
+    public void useExplicitCompression() throws Exception {
+        final int N = 100;
+        File inputFile[] = new File[N];
+        String data = "This is a test message which is contains repeated repeated repeated repeated repeated " +
+                "words for better compression.";
+
+        Map<Writable, Writable> expected = Maps.newHashMap();
+
+        SequenceFileWriter sequenceFileWriterPlain = new SequenceFileWriter.Builder(outputPath)
+                .setCompressionMode(SequenceFile.CompressionType.NONE)
+                .setKeyClass(ConverterFactory.Type.NULL).setValueClass(ConverterFactory.Type.TEXT).build();
+        SequenceFileWriter sequenceFileWriterCompressed =
+                new SequenceFileWriter.Builder(outputPathCompressed)
+                        .setCompressionCodec(BZip2Codec.class.getName())
+                        .setCompressionMode(SequenceFile.CompressionType.BLOCK)
+                        .setKeyClass(ConverterFactory.Type.NULL).setValueClass(ConverterFactory.Type.TEXT).build();
 
         for (int i=0; i<N; i++) {
             inputFile[i] = temporaryFolder.newFile();

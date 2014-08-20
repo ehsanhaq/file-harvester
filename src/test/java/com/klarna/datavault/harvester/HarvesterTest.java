@@ -64,7 +64,7 @@ public class HarvesterTest {
     }
 
     @Test
-    public void simpleScenario() throws IOException {
+    public void simpleScenario() throws Exception {
         Path inputPath = temporaryFolder.newFolder("input").toPath();
         List<String> expected = new ArrayList<>();
         for (int i=0; i<5; i++) {

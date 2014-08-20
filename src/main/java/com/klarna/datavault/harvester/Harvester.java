@@ -13,6 +13,10 @@ import static com.klarna.datavault.harvester.writer.FileWriterFactory.OutputForm
 import static com.klarna.datavault.harvester.writer.FileWriterFactory.createWriter;
 import static java.text.MessageFormat.format;
 
+/**
+ * Harvester class that glues different parts of the application and executes
+ * the harvesting.
+ */
 public class Harvester {
     private Path inputPath;
     private InputType inputType;
@@ -24,6 +28,7 @@ public class Harvester {
 
     private String [] otherArguments;
 
+    /** Private constructor to be called from the builder **/
     private Harvester(Path inputPath, InputType inputType, PathMatcher filePattern, Path outputFile,
                       OutputFormat outputFormat, String [] otherArguments) {
         this.inputPath = inputPath;
@@ -36,7 +41,11 @@ public class Harvester {
         this.otherArguments = otherArguments;
     }
 
-    public void harvest() throws IOException {
+    /**
+     * Executes the file harvesting process.
+     * @throws Exception
+     */
+    public void harvest() throws Exception {
         Processor processor = ProcessorFactory.createProcessor(inputType, pathMatcher, inputPath);
         OutputFileWriter outputFileWriter = createWriter(outputFormat, outputFile, otherArguments);
         processor.process(outputFileWriter);
@@ -47,11 +56,9 @@ public class Harvester {
         FILE
     }
 
-    public enum Visitor {
-        DIRECTORY,
-        FILE_LIST
-    }
-
+    /**
+     * Builder class for creating Harvester instance.
+     */
     public static class Builder {
         Path inputPath = null;
         InputType inputType = InputType.DIRECTORY;

@@ -10,6 +10,7 @@ import org.apache.hadoop.io.compress.DeflateCodec;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -24,29 +25,41 @@ public class SequenceFileWriter extends OutputFileWriterBase {
     private Converter keyConverter;
     private Converter valueConverter;
     private CompressionType compressionType;
+    private String compressionCodec;
     private Writer writer;
 
     private SequenceFileWriter(Path outputPath, Type keyType, Type valueType,
-                               CompressionType compressionType) throws IOException {
+                               CompressionType compressionType, String compressionCodec) throws Exception {
         super(outputPath);
         this.compressionType = compressionType;
+        this.compressionCodec = compressionCodec;
         this.keyConverter = ConverterFactory.create(keyType);
         this.valueConverter = ConverterFactory.create(valueType);
         writer = createSequenceFileWriter(outputFile);
     }
 
     /** Helper method to create a new sequence file **/
-    private Writer createSequenceFileWriter(File outputPath) throws IOException {
+    private Writer createSequenceFileWriter(File outputPath) throws Exception {
         Configuration conf = new Configuration();
         org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(outputPath.getAbsolutePath());
 
-        CompressionCodec codec = new DeflateCodec();
+        CompressionCodec codec = getCompressionCodec();
         Writer.Option optPath = Writer.file(path);
         Writer.Option optKey = Writer.keyClass(keyConverter.getClassName());
         Writer.Option optValue = Writer.valueClass(valueConverter.getClassName());
         Writer.Option optCom = Writer.compression(compressionType, codec);
 
         return createWriter(conf, optPath, optKey, optValue, optCom);
+    }
+
+    /* Helper method for creating a Compression Codec using the No arg constructor of the codec class. */
+    private CompressionCodec getCompressionCodec() throws Exception {
+        try {
+            Constructor<?> constructor = Class.forName(compressionCodec).getConstructor();
+            return (CompressionCodec)constructor.newInstance();
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
     }
 
     /**
@@ -77,6 +90,7 @@ public class SequenceFileWriter extends OutputFileWriterBase {
     public static class Builder {
         private final Path outputFile;
         private CompressionType compressionType = CompressionType.NONE;
+        private String compressionCodec = DeflateCodec.class.getName();
         private Type keyType = Type.BINARY;
         private Type valueType = Type.BINARY;
         private String[] otherArguments;
@@ -97,6 +111,16 @@ public class SequenceFileWriter extends OutputFileWriterBase {
          */
         public Builder setCompressionMode(CompressionType compressionType) {
             this.compressionType = compressionType;
+            return this;
+        }
+
+        /**
+         * Sets the compression codec class
+         * @param compressionCodec compression codec class name
+         * @return this instance of the class
+         */
+        public Builder setCompressionCodec(String compressionCodec) {
+            this.compressionCodec = compressionCodec;
             return this;
         }
 
@@ -133,13 +157,13 @@ public class SequenceFileWriter extends OutputFileWriterBase {
         /**
          * Builds the {@code SequenceFileWriter} instance
          * @return an instance of {@code SequenceFileWriter}
-         * @throws IOException
+         * @throws Exception
          */
-        public SequenceFileWriter build() throws IOException {
+        public SequenceFileWriter build() throws Exception {
             if (otherArguments != null) {
                 parseOtherArguments(otherArguments);
             }
-            return new SequenceFileWriter(outputFile, this.keyType, this.valueType, compressionType);
+            return new SequenceFileWriter(outputFile, this.keyType, this.valueType, compressionType, compressionCodec);
         }
 
         /** Helper class to parse {@link SequenceFileWriter} specific arguments. **/
@@ -163,7 +187,7 @@ public class SequenceFileWriter extends OutputFileWriterBase {
                 commandLine = new BasicParser().parse(options, otherArguments);
             } catch (ParseException e) {
                 HelpFormatter helpFormatter = new HelpFormatter();
-                helpFormatter.printHelp("cmd", options, true);
+                helpFormatter.printHelp("sequence-file-options", options, true);
             }
             this.setKeyClass(Type.valueOf(commandLine.getOptionValue(KEY_CLASS.getOpt(), Type.BINARY.name())));
             this.setValueClass(Type.valueOf(commandLine.getOptionValue(VALUE_CLASS.getOpt(), Type.BINARY.name())));
