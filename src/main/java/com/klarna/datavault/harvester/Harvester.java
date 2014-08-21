@@ -49,6 +49,7 @@ public class Harvester {
         Processor processor = ProcessorFactory.createProcessor(inputType, pathMatcher, inputPath);
         OutputFileWriter outputFileWriter = createWriter(outputFormat, outputFile, otherArguments);
         processor.process(outputFileWriter);
+        outputFileWriter.close();
     }
 
     public enum InputType {
