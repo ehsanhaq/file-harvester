@@ -193,6 +193,7 @@ public class SequenceFileWriter extends OutputFileWriterBase {
             this.setValueClass(Type.valueOf(commandLine.getOptionValue(VALUE_CLASS.getOpt(), Type.BINARY.name())));
             this.setCompressionMode(CompressionType.valueOf(commandLine.getOptionValue(COMPRESSION_MODE.getOpt(),
                     CompressionType.NONE.name())));
+            this.setCompressionCodec(commandLine.getOptionValue(COMPRESSION_CODEC.getOpt(), compressionCodec));
         }
     }
 }
