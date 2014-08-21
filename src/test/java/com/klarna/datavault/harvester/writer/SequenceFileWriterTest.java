@@ -147,7 +147,7 @@ public class SequenceFileWriterTest {
     }
 
     @Test
-    public void useCompression() throws Exception {
+    public void useDefaultCompression() throws Exception {
         final int N = 100;
         File inputFile[] = new File[N];
         String data = "This is a test message which is contains repeated repeated repeated repeated repeated " +
