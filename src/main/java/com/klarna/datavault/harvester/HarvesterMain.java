@@ -2,14 +2,16 @@ package com.klarna.datavault.harvester;
 
 import org.apache.commons.cli.*;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 
 import static com.klarna.datavault.harvester.Harvester.Builder;
-import static com.klarna.datavault.harvester.Harvester.InputType.*;
 import static com.klarna.datavault.harvester.Harvester.InputType.DIRECTORY;
+import static com.klarna.datavault.harvester.Harvester.InputType.valueOf;
 import static com.klarna.datavault.harvester.writer.FileWriterFactory.OutputFormat.SEQUENCE;
 
+/**
+ * Main class, entry point for executing the application.
+ */
 public class HarvesterMain {
 
     private static Option INPUT_PATH = OptionBuilder.hasArgs(1).withArgName("input-path").isRequired(true)
@@ -24,23 +26,28 @@ public class HarvesterMain {
             .withDescription("Output file format. Supported values are SEQUENCE|ZIP|TAR, default is SEQUENCE")
             .create("of");
 
-    public static void main(String[] args) throws ParseException, IOException {
+    public static void main(String[] args) throws ParseException, Exception {
         Options options = new Options()
                 .addOption(INPUT_PATH)
                 .addOption(INPUT_TYPE)
                 .addOption(FILE_MATCH_EXPRESSION)
                 .addOption(OUTPUT_FILE)
                 .addOption(OUTPUT_FORMAT);
-
-        CommandLine commandLine = new BasicParser().parse(options, args);
-
+        CommandLine commandLine = null;
+        try {
+            commandLine = new BasicParser().parse(options, args);
+        } catch(ParseException ex) {
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp("java -jar file-harvester-X.X.jar", options);
+        }
         Harvester harvester = new Builder()
                 .setInputPath(Paths.get(commandLine.getOptionValue(INPUT_PATH.getOpt())))
                 .setInputType(valueOf(commandLine.getOptionValue(INPUT_TYPE.getOpt(), DIRECTORY.name())))
-                        .setFilePattern(commandLine.getOptionValue(FILE_MATCH_EXPRESSION.getOpt(), "*.*"))
-                        .setOutputFile(Paths.get(commandLine.getOptionValue(OUTPUT_FILE.getOpt())))
-                        .setOutputFormat(commandLine.getOptionValue(OUTPUT_FORMAT.getOpt(), SEQUENCE.name()))
-                        .setOtherArguments(commandLine.getArgs())
-                        .build();
+                .setFilePattern(commandLine.getOptionValue(FILE_MATCH_EXPRESSION.getOpt(), "*.*"))
+                .setOutputFile(Paths.get(commandLine.getOptionValue(OUTPUT_FILE.getOpt())))
+                .setOutputFormat(commandLine.getOptionValue(OUTPUT_FORMAT.getOpt(), SEQUENCE.name()))
+                .setOtherArguments(commandLine.getArgs())
+                .build();
+        harvester.harvest();
     }
 }
