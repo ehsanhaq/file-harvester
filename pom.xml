@@ -47,7 +47,7 @@
                     <configuration>
                         <archive>
                             <manifest>
-                                <mainClass>com.klarna.datavault.harvester.HarvesterMain</mainClass>
+                                <mainClass>com.meh.harvester.HarvesterMain</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>
